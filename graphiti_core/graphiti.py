@@ -28,6 +28,8 @@ from graphiti_core.cross_encoder.openai_reranker_client import OpenAIRerankerCli
 from graphiti_core.decorators import handle_multiple_group_ids
 from graphiti_core.driver.driver import GraphDriver
 from graphiti_core.driver.neo4j_driver import Neo4jDriver
+
+# AGE driver is imported lazily below to avoid hard dependency on psycopg2
 from graphiti_core.edges import (
     CommunityEdge,
     Edge,
@@ -209,7 +211,12 @@ class Graphiti:
         else:
             if uri is None:
                 raise ValueError('uri must be provided when graph_driver is None')
-            self.driver = Neo4jDriver(uri, user, password)
+            if uri.startswith('postgresql'):
+                from graphiti_core.driver.age_driver import AGEDriver
+
+                self.driver = AGEDriver.from_uri(uri)
+            else:
+                self.driver = Neo4jDriver(uri, user, password)
 
         self.store_raw_episode_content = store_raw_episode_content
         self.max_coroutines = max_coroutines
